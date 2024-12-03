@@ -3,11 +3,14 @@ from datetime import datetime
 from typing import Optional
 
 
-@dataclass(unsafe_hash=True)
+@dataclass()
 class User:
-    oid: Optional[int] = field(default=None)
+    oid: int
     username: str = field(default='')
     email: Optional[str] = field(default=None)
     registration_date: datetime = field(default_factory=datetime.now)
+
+    def __hash__(self):
+        return hash(self.oid)
  
     

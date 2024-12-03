@@ -6,15 +6,15 @@ from domain import entity
 class AbstractRepository(abc.ABC):
     """
     Класс, добавляющий слой абстракции,
-    инкапсулирующий в себе всё, 
+    инкапсулирующий в себе всё,
     что относится к способу хранения данных.
 
     Назначение: Разделение бизнес-логики от деталей реализации слоя доступа к данным
 
     """
 
-    def add(self, user: entity.User):
-        self._add(user)
+    def add(self, username: str, email: str):
+        self._add(username, email)
 
     def get(self, oid) -> entity.User:
         user = self._get(oid)
@@ -22,8 +22,8 @@ class AbstractRepository(abc.ABC):
 
     def update(self, upd_user: entity.User) -> entity.User:
         return self._update(upd_user)
-            
-    def delete(self,oid: int):
+
+    def delete(self, oid: int):
         user = self._get(oid)
         if user:
             self._delete(user)
@@ -43,7 +43,7 @@ class AbstractRepository(abc.ABC):
     @abc.abstractmethod
     def _update(self, upd_user: entity.User) -> entity.User:
         raise NotImplementedError
-    
+
     @abc.abstractmethod
     def _delete(self, user: entity.User):
         raise NotImplementedError
@@ -55,39 +55,39 @@ class AbstractRepository(abc.ABC):
 
 class SqlAlchemyRepository(AbstractRepository):
     """
-    Конкретная реализация репозитория 
-    для взаимодействия с sqlalchemy 
+    Конкретная реализация репозитория
+    для взаимодействия с sqlalchemy
     """
+
     def __init__(self, session):
         super().__init__()
         self.session = session
 
-    def _add(self, user):
-        user_dto = orm.UserORM.from_entity(user)
+    def _add(self, username, email):
+        user_dto = orm.UserORM(username=username, email=email)
         self.session.add(user_dto)
 
     def _get(self, oid):
-        user = self.session.get(orm.UserORM,oid)
+        user = self.session.get(orm.UserORM, oid)
         return user.to_entity() if user else None
-    
+
     def _update(self, upd_user):
-        cur_user: orm.UserORM = self.session.get(orm.UserORM,upd_user.oid)
+        cur_user: orm.UserORM = self.session.get(orm.UserORM, upd_user.oid)
         if not cur_user:
             return None
         cur_user.username = upd_user.username
         cur_user.email = upd_user.email
         return cur_user.to_entity()
-    
-    def _delete(self, user):
-        user_dto = orm.UserORM.from_entity(user)
-        self.session.delete(user_dto)
 
+    def _delete(self, user):
+        user = self.session.get(orm.UserORM, user.oid)
+        self.session.delete(user)
 
     def _get_by_username(self, username):
         return (
-            self.session.query(entity.User)
+            self.session.query(orm.UserORM)
             .filter(
-                entity.User.username == username,
+                orm.UserORM.username == username,
             )
             .first()
         )
