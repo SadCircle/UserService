@@ -1,9 +1,8 @@
 from flask import Flask, request, jsonify
 from service.user import UserService
+from core.exceptions import ApplicationException
 import bootstrap
-from view import (
-    all_users
-)
+from view import all_users
 
 
 app = Flask(__name__)
@@ -23,12 +22,15 @@ def get_user(userid: int):
 @app.route("/user/add", methods=["POST"])
 def add_user():
     user_service = UserService()
-    user_service.create_user(
-        uow,
-        request.json["username"],
-        request.json["email"],
-    )
-    return "OK", 201
+    try:
+        user_service.create_user(
+            uow,
+            request.json["username"],
+            request.json["email"],
+        )
+        return "OK", 201
+    except ApplicationException as e:
+        return e.message, 400
 
 
 @app.route("/user/<userid>/update", methods=["PUT"])
@@ -49,14 +51,33 @@ def update_user(userid: int):
 @app.route("/user/<userid>/delete", methods=["DELETE"])
 def delete_user(userid: int):
     user_service = UserService()
-    user_service.delete_user(
-        uow,
-        userid,
-    )
-    return "OK", 200
+    try:
+        user_service.delete_user(
+            uow,
+            userid,
+        )
+        return "OK", 200
+    except ApplicationException as e:
+        return e.message, 400
+
 
 @app.route("/users", methods=["GET"])
 def get_users_pagination():
-    users = all_users(uow)
+    try:
+        if count := request.args.get("count"):
+            count = abs(int(count))
+        else:
+            count = 10
+        if page := request.args.get("page"):
+            page = abs(int(page))
+        else:
+            page = 0
+        if offset := request.args.get("offset"):
+            offset = abs(int(offset))
+        else:
+            offset = 10
+    except ValueError:
+        return "Wrong query params", 422
+    users = all_users(uow, count, page, offset)
 
     return users, 200
