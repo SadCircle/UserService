@@ -1,8 +1,9 @@
+from datetime import datetime, timedelta
 from flask import Flask, request, jsonify
 from service.user import UserService
 from core.exceptions import ApplicationException
 import bootstrap
-from view import all_users
+from view import all_users, get_users_by_period, get_top_by_username_length, get_domain_percent_usage
 
 
 app = Flask(__name__)
@@ -81,3 +82,26 @@ def get_users_pagination():
     users = all_users(uow, count, page, offset)
 
     return users, 200
+
+
+@app.route("/users/last_week", methods=["GET"])
+def get_users_by_last_week():
+    users = get_users_by_period(uow, datetime.now() - timedelta(days=7), datetime.now())
+
+    return users, 200
+
+
+
+@app.route("/users/longest_username", methods=["GET"])
+def get_top_five_users_by_username_lenght():
+    users = get_top_by_username_length(uow, 5)
+
+    return users, 200
+
+@app.route("/domain", methods=["GET"])
+def get_domain_percent_usage_api():
+    domain = request.args.get("domain")
+    percent = get_domain_percent_usage(uow, domain)
+
+    return str(percent), 200
+
