@@ -1,7 +1,7 @@
 from typing import Optional
 from datetime import datetime
 from sqlalchemy import MetaData, func
-from sqlalchemy.orm import declarative_base, Mapped, mapped_column
+from sqlalchemy.orm import declarative_base, Mapped, mapped_column, relationship
 from domain import entity
 
 
@@ -10,7 +10,9 @@ BaseORM = declarative_base(metadata=metadata)
 
 
 class UUIDOidMixin:
-    oid: Mapped[int] = mapped_column(name='id', primary_key=True, unique=True, autoincrement=True)
+    oid: Mapped[int] = mapped_column(
+        name="id", primary_key=True, unique=True, autoincrement=True
+    )
 
 
 class UserORM(UUIDOidMixin, BaseORM):

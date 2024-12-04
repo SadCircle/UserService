@@ -29,7 +29,7 @@ class AbstractRepository(abc.ABC):
     def get_by_username(self, username: str) -> entity.User:
         user = self._get_by_username(username)
         return user
-
+    
     @abc.abstractmethod
     def _add(self, user: entity.User) -> entity.User:
         raise NotImplementedError

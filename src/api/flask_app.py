@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from flask import Flask, request, jsonify
+from flask import Flask, request
 from service.user import UserService
 from core.exceptions import ApplicationException
 import bootstrap
