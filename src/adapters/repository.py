@@ -13,8 +13,8 @@ class AbstractRepository(abc.ABC):
 
     """
 
-    def add(self, username: str, email: str):
-        self._add(username, email)
+    def add(self, username: str, email: str) -> entity.User:
+        return self._add(username, email)
 
     def get(self, oid) -> entity.User:
         user = self._get(oid)
@@ -24,16 +24,14 @@ class AbstractRepository(abc.ABC):
         return self._update(upd_user)
 
     def delete(self, oid: int):
-        user = self._get(oid)
-        if user:
-            self._delete(user)
+        self._delete(oid)
 
     def get_by_username(self, username: str) -> entity.User:
         user = self._get_by_username(username)
         return user
 
     @abc.abstractmethod
-    def _add(self, user: entity.User):
+    def _add(self, user: entity.User) -> entity.User:
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -45,7 +43,7 @@ class AbstractRepository(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def _delete(self, user: entity.User):
+    def _delete(self, oid: int):
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -75,12 +73,13 @@ class SqlAlchemyRepository(AbstractRepository):
         cur_user: orm.UserORM = self.session.get(orm.UserORM, upd_user.oid)
         if not cur_user:
             return None
-        cur_user.username = upd_user.username
-        cur_user.email = upd_user.email
+        for var, value in vars(upd_user).items():
+            setattr(cur_user, var, value) if value else None
+
         return cur_user.to_entity()
 
-    def _delete(self, user):
-        user = self.session.get(orm.UserORM, user.oid)
+    def _delete(self, oid: int):
+        user = self.session.get(orm.UserORM, oid)
         self.session.delete(user)
 
     def _get_by_username(self, username):
