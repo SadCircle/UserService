@@ -1,14 +1,16 @@
-from dataclasses import dataclass, field
+from pydantic import BaseModel,Field
 from datetime import datetime
 from typing import Optional
 
 
-@dataclass()
-class User:
+
+class User(BaseModel):
+    """Пользователь - основной объект предметной области
+    """
     oid: int
-    username: str = field(default='')
-    email: Optional[str] = field(default=None)
-    registration_date: datetime = field(default_factory=datetime.now)
+    username: str = Field(default='')
+    email: Optional[str] = Field(default=None)
+    registration_date: datetime = Field(default_factory=datetime.now)
 
     def __hash__(self):
         return hash(self.oid)
