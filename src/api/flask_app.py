@@ -17,6 +17,11 @@ uow = bootstrap.bootstrap()
 
 @app.route("/user/<userid>", methods=["GET"])
 def get_user(userid: int):
+    """Выводит данные пользователя
+
+    Args:
+        userid (int): id пользователя
+    """
     user_service = UserService()
     try:
         user = user_service.get_user(uow, userid)
@@ -30,6 +35,7 @@ def get_user(userid: int):
 
 @app.route("/user/add", methods=["POST"])
 def add_user():
+    """Добавляет пользователя в систему"""
     user_service = UserService()
     try:
         username = request.json["username"]
@@ -45,11 +51,16 @@ def add_user():
         return "OK", 201
     except ApplicationException as e:
         return e.message, 400
-    
 
 
 @app.route("/user/<userid>/update", methods=["PUT"])
 def update_user(userid: int):
+    """Обнавляет данные пользователя
+        Можно обновить username и email
+
+    Args:
+        userid (int): id пользователя
+    """
     user_service = UserService()
     try:
         upd_user = user_service.update_user(
@@ -68,6 +79,11 @@ def update_user(userid: int):
 
 @app.route("/user/<userid>/delete", methods=["DELETE"])
 def delete_user(userid: int):
+    """Удаляет пользователя
+
+    Args:
+        userid (int): id пользователя
+    """
     user_service = UserService()
     try:
         user_service.delete_user(
@@ -81,6 +97,11 @@ def delete_user(userid: int):
 
 @app.route("/users", methods=["GET"])
 def get_users_pagination():
+    """Выводит всех пользователей с использованием пагинации
+    query arg count - число записей
+    query arg page - страница
+    query arg offset - сдвиг (используется в тестовом режиме)
+    """
     try:
         if count := request.args.get("count"):
             count = abs(int(count))
@@ -103,6 +124,8 @@ def get_users_pagination():
 
 @app.route("/users/last_week", methods=["GET"])
 def get_users_by_last_week():
+    """Выводит число пользователей, зарегестрированных в последние 7 дней
+    """
     users = get_users_by_period(uow, datetime.now() - timedelta(days=7), datetime.now())
 
     return users, 200
@@ -110,6 +133,8 @@ def get_users_by_last_week():
 
 @app.route("/users/longest_username", methods=["GET"])
 def get_top_five_users_by_username_lenght():
+    """ Выводит топ 5 пользователей с самым длинным (username)
+    """
     users = get_top_by_username_length(uow, 5)
 
     return users, 200
@@ -117,6 +142,8 @@ def get_top_five_users_by_username_lenght():
 
 @app.route("/domain", methods=["GET"])
 def get_domain_percent_usage_api():
+    """Вычисляет долю использования домена (domain) среди всех пользователей
+    """
     domain = request.args.get("domain")
     percent = get_domain_percent_usage(uow, domain)
 
