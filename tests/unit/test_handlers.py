@@ -31,8 +31,8 @@ class FakeRepository(repository.AbstractRepository):
         cur_user = self._get(upd_user.oid)
         if not cur_user:
             return None
-        cur_user.username = upd_user.username
-        cur_user.email = upd_user.email
+        for var, value in vars(upd_user).items():
+            setattr(cur_user, var, value) if value else None
         return cur_user
 
     def _delete(self, oid):
