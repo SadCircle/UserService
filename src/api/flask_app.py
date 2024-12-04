@@ -3,7 +3,12 @@ from flask import Flask, request, jsonify
 from service.user import UserService
 from core.exceptions import ApplicationException
 import bootstrap
-from view import all_users, get_users_by_period, get_top_by_username_length, get_domain_percent_usage
+from view import (
+    all_users,
+    get_users_by_period,
+    get_top_by_username_length,
+    get_domain_percent_usage,
+)
 
 
 app = Flask(__name__)
@@ -13,40 +18,52 @@ uow = bootstrap.bootstrap()
 @app.route("/user/<userid>", methods=["GET"])
 def get_user(userid: int):
     user_service = UserService()
-    user = user_service.get_user(uow, userid)
-    if user:
-        return jsonify(user), 200
-    else:
-        return "NOT FOUND", 404
+    try:
+        user = user_service.get_user(uow, userid)
+        if user:
+            return user.model_dump_json(), 200
+        else:
+            return "NOT FOUND", 404
+    except ApplicationException as e:
+        return e.message, 400
 
 
 @app.route("/user/add", methods=["POST"])
 def add_user():
     user_service = UserService()
     try:
+        username = request.json["username"]
+    except KeyError:
+        return "Username required", 400
+    email = request.json.get("email")
+    try:
         user_service.create_user(
             uow,
-            request.json["username"],
-            request.json["email"],
+            username,
+            email,
         )
         return "OK", 201
     except ApplicationException as e:
         return e.message, 400
+    
 
 
 @app.route("/user/<userid>/update", methods=["PUT"])
 def update_user(userid: int):
     user_service = UserService()
-    upd_user = user_service.update_user(
-        uow,
-        userid,
-        request.json.get("username"),
-        request.json.get("email"),
-    )
-    if upd_user:
-        return jsonify(upd_user), 200
-    else:
-        return "User not found", 400
+    try:
+        upd_user = user_service.update_user(
+            uow,
+            userid,
+            request.json.get("username"),
+            request.json.get("email"),
+        )
+        if upd_user:
+            return upd_user.model_dump_json(), 200
+        else:
+            return "User not found", 400
+    except ApplicationException as e:
+        return e.message, 400
 
 
 @app.route("/user/<userid>/delete", methods=["DELETE"])
@@ -91,12 +108,12 @@ def get_users_by_last_week():
     return users, 200
 
 
-
 @app.route("/users/longest_username", methods=["GET"])
 def get_top_five_users_by_username_lenght():
     users = get_top_by_username_length(uow, 5)
 
     return users, 200
+
 
 @app.route("/domain", methods=["GET"])
 def get_domain_percent_usage_api():
@@ -104,4 +121,3 @@ def get_domain_percent_usage_api():
     percent = get_domain_percent_usage(uow, domain)
 
     return str(percent), 200
-
