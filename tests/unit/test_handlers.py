@@ -7,18 +7,22 @@ from service.user import UserService
 from adapters import repository
 from service import uow
 from domain import entity
+from core.exceptions import ApplicationException
 
 
 class FakeRepository(repository.AbstractRepository):
     oid_counter = 1
+
     def __init__(self, users):
         super().__init__()
         self._users = set(users)
 
-    def _add(self, user):
-        user.oid=self.oid_counter
+    def _add(self, username: str, email: str):
+        oid = self.oid_counter
+        user = entity.User(oid=oid, username=username, email=email)
         self._users.add(user)
-        self.oid_counter+=1
+        self.oid_counter += 1
+        return user
 
     def _get(self, oid):
         return next((u for u in self._users if u.oid == oid), None)
@@ -32,9 +36,8 @@ class FakeRepository(repository.AbstractRepository):
         return cur_user
 
     def _delete(self, oid):
-        user = self._get(oid)
-        if user:
-            self._users.remove(user)
+        user = self.get(oid)
+        self._users.remove(user)
 
     def _get_by_username(self, username):
         return next(
@@ -54,27 +57,77 @@ class FakeUnitOfWork(uow.AbstractUnitOfWork):
     def rollback(self):
         pass
 
+
 def bootstrap_test_app():
     return bootstrap.bootstrap(
         uow=FakeUnitOfWork(),
     )
+
 
 class TestAddUser:
     def test_for_new_user(self):
         uow = bootstrap_test_app()
         user_service = UserService()
 
-        # new_user = entity.User(
-        #     oid=1,
-        #     username='test'
-        # )
-        user_service.create_user(
-            uow,
-            username='test'
-        )
-        assert uow.users.get_by_username('test') is not None
+        user = user_service.create_user(uow, username="test1")
+        assert uow.users.get_by_username("test1").oid == user.oid
         assert uow.committed
 
+    def test_user_already_exist(self):
+        uow = bootstrap_test_app()
+        user_service = UserService()
+
+        user_service.create_user(uow, username="test")
+        try:
+            user_service.create_user(uow, username="test")
+        except ApplicationException:
+            pass
+        else:
+            raise Exception
 
 
+class TestDeleteUser:
+    def test_delete_user(self):
+        uow = bootstrap_test_app()
+        user_service = UserService()
 
+        user = user_service.create_user(uow, username="test2")
+        user_service.delete_user(uow, user.oid)
+
+        assert uow.users.get_by_username("test2") is None
+
+    def test_delete_not_existed_user(self):
+        uow = bootstrap_test_app()
+        user_service = UserService()
+
+        try:
+            user_service.delete_user(uow, 1)
+        except ApplicationException:
+            pass
+        else:
+            raise Exception
+
+
+class TestUpdateUser:
+    def test_update_user(self):
+        uow = bootstrap_test_app()
+        user_service = UserService()
+
+        user = user_service.create_user(uow, username="test2")
+        user_service.update_user(uow, user.oid, username="test3")
+
+        assert uow.users.get_by_username("test2") is None
+        assert uow.users.get_by_username("test3") is not None
+
+    def test_update_used_username(self):
+        uow = bootstrap_test_app()
+        user_service = UserService()
+
+        user = user_service.create_user(uow, username="test2")
+        _ = user_service.create_user(uow, username="test3")
+        try:
+            user_service.update_user(uow, user.oid, username="test3")
+        except ApplicationException:
+            pass
+        else:
+            raise Exception
